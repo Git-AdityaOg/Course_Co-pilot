@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Creation Co-pilot</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    
+    <!-- Animate.css for Animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    
+    <!-- Custom Styles -->
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Arial', sans-serif;
+        }
+        h1, h3 {
+            color: #0056b3;
+        }
+        h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        textarea, input {
+            margin-bottom: 20px;
+        }
+        button {
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        hr {
+            border-top: 3px solid #d0d9d6;
+            margin: 50px 0;
+        }
+        #translatedOutput, #lectureNotes, #suggestionsOutput {
+            background-color: #e0f7fa;
+            padding: 15px;
+            border-radius: 10px;
+            font-style: italic;
+        }
+        #imageGallery img {
+            transition: transform 0.3s;
+        }
+        #imageGallery img:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container animate__animated animate__fadeIn">
+        <h1>Course Creation Co-pilot</h1>
+
+        <!-- Content Translation Section -->
+        <h3>Content Translation</h3>
+        <form id="translateForm">
+            <textarea name="content" class="form-control" rows="3" placeholder="Enter content for translation"></textarea><br>
+            <input type="text" name="target_lang" class="form-control" placeholder="Target Language (e.g., 'hi' for Hindi)"><br>
+            <button type="submit" class="btn btn-primary">Translate</button>
+        </form>
+        <h4>Translated Content:</h4>
+        <p id="translatedOutput"></p>
+
+        <hr>
+
+        <!-- Text-to-Speech Section -->
+        <h3>Text-to-Speech</h3>
+        <form id="ttsForm">
+            <textarea name="content" class="form-control" rows="3" placeholder="Enter content for voiceover"></textarea><br>
+            <input type="text" name="lang" class="form-control" placeholder="Language Code (e.g., 'en' for English)"><br>
+            <button type="submit" class="btn btn-primary">Generate Voiceover</button>
+        </form>
+        <h4>Voiceover:</h4>
+        <audio id="voiceoverAudio" controls></audio>
+
+        <hr>
+
+        <!-- Speech-to-Text Section -->
+        <h3>Speech-to-Text</h3>
+        <form id="sttForm" enctype="multipart/form-data">
+            <input type="file" name="audio" class="form-control"><br>
+            <button type="submit" class="btn btn-primary">Convert to Text</button>
+        </form>
+        <h4>Lecture Notes:</h4>
+        <p id="lectureNotes"></p>
+
+        <hr>
+
+        <!-- Content Suggestions Section -->
+        <h3>Content Suggestions</h3>
+        <form id="contentSuggestForm">
+            <input type="text" name="topic" class="form-control" placeholder="Enter course topic"><br>
+            <button type="submit" class="btn btn-primary">Get Suggestions</button>
+        </form>
+        <h4>Suggested Content:</h4>
+        <p id="suggestionsOutput"></p>
+
+        <hr>
+
+        <!-- Image Suggestions Section -->
+        <h3>Image Suggestions</h3>
+        <form id="imageSuggestForm">
+            <input type="text" name="topic" class="form-control" placeholder="Enter image topic"><br>
+            <button type="submit" class="btn btn-primary">Suggest Images</button>
+        </form>
+        <h4>Suggested Images:</h4>
+        <div id="imageGallery" class="row"></div>
+    </div>
+
+    <!-- jQuery and Bootstrap JS for AJAX -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Content Translation
+        $('#translateForm').submit(function(event) {
+            event.preventDefault();
+            var formData = $(this).serialize();
+            $.post('/translate', formData, function(data) {
+                $('#translatedOutput').text(data.translated_content);
+            });
+        });
+
+        // Text-to-Speech
+        $('#ttsForm').submit(function(event) {
+            event.preventDefault();
+            var formData = $(this).serialize();
+            $.post('/voiceover', formData, function(data) {
+                $('#voiceoverAudio').attr('src', data.audio_file);
+            });
+        });
+
+        // Speech-to-Text
+        $('#sttForm').submit(function(event) {
+            event.preventDefault();
+            var formData = new FormData(this);
+            $.ajax({
+                url: '/stt',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    $('#lectureNotes').text(data.lecture_notes);
+                }
+            });
+        });
+
+        // Content Suggestions
+        $('#contentSuggestForm').submit(function(event) {
+            event.preventDefault();
+            var formData = $(this).serialize();
+            $.post('/suggest_content', formData, function(data) {
+                $('#suggestionsOutput').text(data.suggestions);
+            });
+        });
+
+        // Image Suggestions
+        $('#imageSuggestForm').submit(function(event) {
+            event.preventDefault();
+            var formData = $(this).serialize();
+            $.post('/suggest_images', formData, function(data) {
+                $('#imageGallery').empty();
+                $.each(data.images, function(index, imageUrl) {
+                    $('#imageGallery').append(`
+                        <div class="col-md-3">
+                            <img src="${imageUrl}" class="img-thumbnail" alt="Suggested Image">
+                        </div>
+                    `);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
